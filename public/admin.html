@@ -519,30 +519,39 @@
   async function doLogin() {
     console.log('🔐 Attempting login...');
     const token = document.getElementById('token-input').value.trim();
+    const errEl = document.getElementById('login-err');
     if (!token) {
       showToast('⚠️ Please enter admin token');
       return;
     }
     try {
-      const res = await fetch('/api/admin/stats', { headers: { 'x-admin-token': token } });
-      if (res.status === 401) { 
-        document.getElementById('login-err').classList.add('show'); 
+      // Use the dedicated login endpoint that supports the 'token' field
+      const res = await fetch('/api/admin/login', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          username: 'admin', 
+          password: 'admin123', 
+          token: token 
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) { 
+        errEl.textContent = data.error || 'Invalid credentials';
+        errEl.classList.add('show'); 
         return; 
       }
-      const data = await res.json();
-      if (!data.success) {
-        document.getElementById('login-err').textContent = data.error || 'Login failed';
-        document.getElementById('login-err').classList.add('show');
-        return;
-      }
+      
       ADMIN_TOKEN = token;
       console.log('✅ Login successful');
       document.getElementById('login-screen').classList.add('hidden');
       loadDashboard();
     } catch (error) {
       console.error('Login error:', error);
-      document.getElementById('login-err').textContent = 'Network error. Is the server running?';
-      document.getElementById('login-err').classList.add('show');
+      errEl.textContent = 'Network error. Is the server running?';
+      errEl.classList.add('show');
     }
   }
 
