@@ -299,6 +299,40 @@ app.get('/api/stats', async (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'yummysalad-admin-2025';
 
+// POST /api/admin/login
+app.post('/api/admin/login', adminLimiter, (req, res) => {
+  try {
+    let body = req.body || {};
+    if (Object.keys(body).length === 0 && req.apiGateway && req.apiGateway.event && req.apiGateway.event.body) {
+      try {
+        if (typeof req.apiGateway.event.body === 'object') {
+          body = req.apiGateway.event.body;
+        } else {
+          const rawBody = req.apiGateway.event.isBase64Encoded 
+            ? Buffer.from(req.apiGateway.event.body, 'base64').toString('utf8') 
+            : req.apiGateway.event.body;
+          body = JSON.parse(rawBody);
+        }
+      } catch (e) {}
+    }
+
+    const { username, password, token } = body;
+    if (!username || !password || !token) {
+      return res.status(400).json({ success: false, error: 'Missing credentials' });
+    }
+    if (token !== ADMIN_TOKEN) {
+      return res.status(401).json({ success: false, error: 'Invalid admin token' });
+    }
+    // Hardcoded simple admin credential check for testing
+    if (username === 'admin' && password === 'admin123') {
+      return res.json({ success: true });
+    }
+    return res.status(401).json({ success: false, error: 'Invalid username or password' });
+  } catch(err) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 function adminAuth(req, res, next) {
   const token = req.headers['x-admin-token'] || req.query.token;
   if (token !== ADMIN_TOKEN) return res.status(401).json({ success: false, error: 'Unauthorized' });
