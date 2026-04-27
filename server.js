@@ -119,10 +119,9 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
     }
 
     if (Object.keys(errors).length > 0) {
-      // DEBUG: If validation fails, return the stringified body in the 'error' field so we can see what the backend received.
       return res.status(400).json({ 
         success: false, 
-        error: "DEBUG_PAYLOAD: " + JSON.stringify(body),
+        error: 'Please fix the errors above.',
         errors 
       });
     }
@@ -150,51 +149,51 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
       customerLng: parseFloat(customerLng) || null
     };
 
-    const orderId = await db.createOrder(orderData);
+    const savedOrder = await db.createOrder(orderData);
 
     if (method === 'cod') {
-      await db.attachPaymentOrder(orderData.order_id, { paymentProvider: 'cod', razorpayOrderId: null });
+      await db.attachPaymentOrder(savedOrder.order_id, { paymentProvider: 'cod', razorpayOrderId: null });
       return res.status(201).json({
         success: true,
         message: 'Order created. Cash on Delivery selected.',
         order: {
-          id: orderData.id,
-          orderId: orderData.order_id,
-          total: orderData.total,
-          bowlSize: orderData.bowlSize,
-          bowlPrice: orderData.bowlPrice,
+          id: savedOrder.id,
+          orderId: savedOrder.order_id,
+          total: savedOrder.total,
+          bowlSize: savedOrder.bowlSize,
+          bowlPrice: savedOrder.bowlPrice,
           paymentMethod: 'cod',
           paymentProvider: 'cod',
           paymentStatus: 'pending',
-          status: orderData.status,
+          status: savedOrder.status,
           estimatedDelivery: '6 PM – 9 PM tomorrow'
         }
       });
     }
 
     const rpOrder = await razorpay.orders.create({
-      amount: orderData.total * 100,
+      amount: savedOrder.total * 100,
       currency: 'INR',
-      receipt: orderData.order_id,
+      receipt: savedOrder.order_id,
       notes: {
-        order_id: order.order_id,
-        name: order.name,
-        phone: order.phone
+        order_id: savedOrder.order_id,
+        name: savedOrder.name,
+        phone: savedOrder.phone
       }
     });
-    await db.attachPaymentOrder(order.order_id, { paymentProvider: provider, razorpayOrderId: rpOrder.id });
+    await db.attachPaymentOrder(savedOrder.order_id, { paymentProvider: provider, razorpayOrderId: rpOrder.id });
 
     res.status(201).json({
       success: true,
       message: 'Order created. Complete payment to confirm.',
       order: {
-        id: orderData.id, orderId: orderData.order_id, total: orderData.total,
-        bowlSize: orderData.bowlSize,
-        bowlPrice: orderData.bowlPrice,
+        id: savedOrder.id, orderId: savedOrder.order_id, total: savedOrder.total,
+        bowlSize: savedOrder.bowlSize,
+        bowlPrice: savedOrder.bowlPrice,
         paymentMethod: 'online',
         paymentProvider: provider,
         paymentStatus: 'pending',
-        status: order.status, estimatedDelivery: '6 PM – 9 PM tomorrow'
+        status: savedOrder.status, estimatedDelivery: '6 PM – 9 PM tomorrow'
       },
       payment: {
         keyId: RAZORPAY_KEY_ID,

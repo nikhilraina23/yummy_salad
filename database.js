@@ -68,7 +68,7 @@ export async function createOrder({ name, phone, location, address, quantity, no
   };
     db.data.orders.push(order);
     await db.write();
-    return id;
+    return order;
 }
 
 export async function getOrderById(id) {
