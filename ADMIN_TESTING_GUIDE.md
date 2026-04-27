@@ -3,7 +3,7 @@
 ## 🚀 Quick Start
 
 1. **Access Admin Dashboard**: http://localhost:3000/admin.html
-2. **Login Token**: `yummysalad-admin-2025`
+2. **Login Token**: `YOUR_ADMIN_TOKEN_HERE` (set via Netlify environment variable)
 3. **Server Status**: ✅ Running on port 3000
 
 ## ✅ Completed Fixes
@@ -26,7 +26,7 @@
 ## 🧪 Testing Checklist
 
 ### 1. Login Authentication
-- [ ] Enter correct token: `yummysalad-admin-2025`
+- [ ] Enter correct token: `YOUR_ADMIN_TOKEN_HERE`
 - [ ] Verify successful login and dashboard load
 - [ ] Test with wrong token (should show error)
 - [ ] Test empty token (should show validation)
@@ -103,7 +103,7 @@
 ## 🚨 Common Issues & Solutions
 
 ### Issue: Login fails
-- **Solution**: Verify token is exactly `yummysalad-admin-2025`
+- **Solution**: Verify token matches your `ADMIN_TOKEN` environment variable
 - **Check**: Server is running on port 3000
 
 ### Issue: Orders not loading

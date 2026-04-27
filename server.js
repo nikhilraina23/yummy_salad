@@ -302,7 +302,7 @@ app.get('/api/stats', async (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 //  ADMIN API ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
-const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || 'yummysalad-admin-2025').trim();
+const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || 'YOUR_ADMIN_TOKEN_HERE').trim();
 
 // POST /api/admin/login
 app.post('/api/admin/login', adminLimiter, (req, res) => {

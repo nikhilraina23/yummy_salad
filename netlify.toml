@@ -6,6 +6,10 @@
 [functions]
   node_bundler = "esbuild"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "ADMIN_TOKEN"
+  SECRETS_SCAN_OMIT_PATHS = "simple-test.js test-sh.js test-bowl-sizes.js test-admin-frontend.js test-admin.js ADMIN_TESTING_GUIDE.md .env.example server.js"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
