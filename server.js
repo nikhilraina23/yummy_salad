@@ -51,7 +51,18 @@ app.use(express.static(join(__dirname, 'public')));
 // POST /api/orders  — Create order (COD or online)
 app.post('/api/orders', orderLimiter, async (req, res) => {
   try {
-    const { name, phone, location, address, quantity, notes, bowlSize, bowlPrice, paymentMethod, paymentProvider, customerLat, customerLng } = req.body;
+    let body = req.body || {};
+    // Fallback for Netlify serverless environment if express.json() missed the payload
+    if (Object.keys(body).length === 0 && req.apiGateway && req.apiGateway.event && req.apiGateway.event.body) {
+      try {
+        const rawBody = req.apiGateway.event.isBase64Encoded 
+          ? Buffer.from(req.apiGateway.event.body, 'base64').toString('utf8') 
+          : req.apiGateway.event.body;
+        body = JSON.parse(rawBody);
+      } catch (e) { console.error('Fallback parse error:', e); }
+    }
+
+    const { name, phone, location, address, quantity, notes, bowlSize, bowlPrice, paymentMethod, paymentProvider, customerLat, customerLng } = body;
 
     const errors = {};
     if (!name || name.trim().length < 2) errors.name = 'Name must be at least 2 characters';
@@ -305,7 +316,16 @@ app.get('/api/admin/orders', adminAuth, async (req, res) => {
 // PATCH /api/admin/orders/:id/status
 app.patch('/api/admin/orders/:id/status', adminAuth, async (req, res) => {
   try {
-    const { status } = req.body;
+    let body = req.body || {};
+    if (Object.keys(body).length === 0 && req.apiGateway && req.apiGateway.event && req.apiGateway.event.body) {
+      try {
+        const rawBody = req.apiGateway.event.isBase64Encoded 
+          ? Buffer.from(req.apiGateway.event.body, 'base64').toString('utf8') 
+          : req.apiGateway.event.body;
+        body = JSON.parse(rawBody);
+      } catch (e) {}
+    }
+    const { status } = body;
     const validStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
     if (!validStatuses.includes(status)) return res.status(400).json({ success: false, error: 'Invalid status' });
     
