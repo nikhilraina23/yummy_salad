@@ -525,21 +525,17 @@
       return;
     }
     try {
-      // Use the dedicated login endpoint that supports the 'token' field
+      // Use the dedicated login endpoint
       const res = await fetch('/api/admin/login', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username: 'admin', 
-          password: 'admin123', 
-          token: token 
-        })
+        body: JSON.stringify({ token: token })
       });
       
       const data = await res.json();
       
       if (!res.ok || !data.success) { 
-        errEl.textContent = data.error || 'Invalid credentials';
+        errEl.textContent = data.error || 'Invalid admin token';
         errEl.classList.add('show'); 
         return; 
       }
