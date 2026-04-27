@@ -55,10 +55,14 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
     // Fallback for Netlify serverless environment if express.json() missed the payload
     if (Object.keys(body).length === 0 && req.apiGateway && req.apiGateway.event && req.apiGateway.event.body) {
       try {
-        const rawBody = req.apiGateway.event.isBase64Encoded 
-          ? Buffer.from(req.apiGateway.event.body, 'base64').toString('utf8') 
-          : req.apiGateway.event.body;
-        body = JSON.parse(rawBody);
+        if (typeof req.apiGateway.event.body === 'object') {
+          body = req.apiGateway.event.body;
+        } else {
+          const rawBody = req.apiGateway.event.isBase64Encoded 
+            ? Buffer.from(req.apiGateway.event.body, 'base64').toString('utf8') 
+            : req.apiGateway.event.body;
+          body = JSON.parse(rawBody);
+        }
       } catch (e) { console.error('Fallback parse error:', e); }
     }
 
@@ -319,10 +323,14 @@ app.patch('/api/admin/orders/:id/status', adminAuth, async (req, res) => {
     let body = req.body || {};
     if (Object.keys(body).length === 0 && req.apiGateway && req.apiGateway.event && req.apiGateway.event.body) {
       try {
-        const rawBody = req.apiGateway.event.isBase64Encoded 
-          ? Buffer.from(req.apiGateway.event.body, 'base64').toString('utf8') 
-          : req.apiGateway.event.body;
-        body = JSON.parse(rawBody);
+        if (typeof req.apiGateway.event.body === 'object') {
+          body = req.apiGateway.event.body;
+        } else {
+          const rawBody = req.apiGateway.event.isBase64Encoded 
+            ? Buffer.from(req.apiGateway.event.body, 'base64').toString('utf8') 
+            : req.apiGateway.event.body;
+          body = JSON.parse(rawBody);
+        }
       } catch (e) {}
     }
     const { status } = body;
