@@ -310,42 +310,49 @@ app.post('/api/admin/login', adminLimiter, (req, res) => {
   try {
     let body = req.body || {};
     
-    // Fallback for Netlify/API Gateway body parsing
+    // Netlify/AWS Lambda body parsing fallback
     if (Object.keys(body).length === 0 && req.apiGateway && req.apiGateway.event && req.apiGateway.event.body) {
       try {
-        if (typeof req.apiGateway.event.body === 'object') {
-          body = req.apiGateway.event.body;
-        } else {
-          const rawBody = req.apiGateway.event.isBase64Encoded 
-            ? Buffer.from(req.apiGateway.event.body, 'base64').toString('utf8') 
-            : req.apiGateway.event.body;
-          body = JSON.parse(rawBody);
-        }
+        const event = req.apiGateway.event;
+        const rawBody = event.isBase64Encoded 
+          ? Buffer.from(event.body, 'base64').toString('utf8') 
+          : (typeof event.body === 'string' ? event.body : JSON.stringify(event.body));
+        body = JSON.parse(rawBody);
       } catch (e) {
-        console.error('Login body parse error:', e);
+        console.error('[Login] Body parse fallback failed:', e.message);
       }
     }
 
-    const { token } = body;
+    // Ensure body is an object
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch(e) {}
+    }
+
+    const inputToken = (body.token || '').toString().trim();
     
-    if (!token) {
+    if (!inputToken) {
       return res.status(400).json({ success: false, error: 'Token is required' });
     }
 
-    if (token.trim() === ADMIN_TOKEN) {
+    if (inputToken === ADMIN_TOKEN) {
+      console.log('[Login] Success: Admin logged in');
       return res.json({ success: true });
     }
 
+    console.warn(`[Login] Failure: Received "${inputToken}", expected matching token`);
     return res.status(401).json({ success: false, error: 'Invalid admin token' });
   } catch(err) {
-    console.error('Login error:', err);
+    console.error('[Login] Critical error:', err);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
 function adminAuth(req, res, next) {
-  const token = (req.headers['x-admin-token'] || req.query.token || '').trim();
-  if (token !== ADMIN_TOKEN) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  const token = (req.headers['x-admin-token'] || req.query.token || '').toString().trim();
+  if (token !== ADMIN_TOKEN) {
+    console.warn(`[Auth] Unauthorized access attempt. Received: "${token}"`);
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
   next();
 }
 
