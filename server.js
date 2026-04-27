@@ -39,6 +39,12 @@ const generalLimiter = rateLimit({
   max: 100
 });
 
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, error: 'Too many login attempts. Please try again later.' }
+});
+
 app.use('/api/', generalLimiter);
 
 // ── Static Files ─────────────────────────────────────────────────────────────
