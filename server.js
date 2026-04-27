@@ -51,7 +51,15 @@ app.use(express.static(join(__dirname, 'public')));
 // POST /api/orders  — Create order (COD or online)
 app.post('/api/orders', orderLimiter, async (req, res) => {
   try {
-    let body = req.body || {};
+    let body = req.body;
+    
+    // If express.json() failed to parse it, it might be a string
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch(e) {}
+    }
+    
+    body = body || {};
+
     // Fallback for Netlify serverless environment if express.json() missed the payload
     if (Object.keys(body).length === 0 && req.apiGateway && req.apiGateway.event && req.apiGateway.event.body) {
       try {
@@ -64,6 +72,10 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
           body = JSON.parse(rawBody);
         }
       } catch (e) { console.error('Fallback parse error:', e); }
+    }
+    
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch(e) {}
     }
 
     const { name, phone, location, address, quantity, notes, bowlSize, bowlPrice, paymentMethod, paymentProvider, customerLat, customerLng } = body;
@@ -100,7 +112,14 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
       errors.bowlPrice = 'Invalid bowl price';
     }
 
-    if (Object.keys(errors).length > 0) return res.status(400).json({ success: false, errors });
+    if (Object.keys(errors).length > 0) {
+      // DEBUG: If validation fails, return the stringified body in the 'error' field so we can see what the backend received.
+      return res.status(400).json({ 
+        success: false, 
+        error: "DEBUG_PAYLOAD: " + JSON.stringify(body),
+        errors 
+      });
+    }
     if (method === 'online' && !razorpay) {
       return res.status(503).json({
         success: false,
