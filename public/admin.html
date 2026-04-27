@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yummy Salad – Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green:        #2d9e5f;
+      --green-dark:   #1d7a47;
+      --green-light:  #e6f7ee;
+      --orange:       #f97316;
+      --orange-light: #fff4ed;
+      --yellow:       #f59e0b;
+      --red:          #ef4444;
+      --red-light:    #fef2f2;
+      --blue:         #3b82f6;
+      --blue-light:   #eff6ff;
+      --purple:       #8b5cf6;
+      --purple-light: #f5f3ff;
+      --bg:           #f8fafc;
+      --sidebar-bg:   #0f1117;
+      --surface:      #ffffff;
+      --border:       #e2e8f0;
+      --text:         #1e293b;
+      --muted:        #64748b;
+      --radius:       12px;
+      --shadow:       0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md:    0 4px 16px rgba(0,0,0,.10);
+      --font:         "Inter", system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); display: flex; overflow: hidden; }
+
+    /* ── Login Screen ─────────────────────────────────────────────── */
+    #login-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(135deg, #0f1117 0%, #1d7a47 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    #login-screen.hidden { display: none; }
+    .login-card {
+      background: #fff; border-radius: 20px; padding: 48px 40px;
+      max-width: 380px; width: 90%; box-shadow: 0 24px 64px rgba(0,0,0,.3);
+      text-align: center;
+    }
+    .login-logo { font-size: 2.5rem; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .login-logo img { height: 80px; width: auto; object-fit: contain; }
+    .login-title { font-size: 1.3rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .login-sub { font-size: .85rem; color: var(--muted); margin-bottom: 28px; }
+    .login-input {
+      width: 100%; padding: 13px 16px; border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-family: var(--font); font-size: .95rem;
+      margin-bottom: 14px; outline: none; transition: border-color .2s;
+    }
+    .login-input:focus { border-color: var(--green); }
+    .login-btn {
+      width: 100%; padding: 13px; background: var(--green); color: #fff;
+      border: none; border-radius: var(--radius); font-size: 1rem;
+      font-weight: 700; font-family: var(--font); cursor: pointer;
+      transition: background .2s;
+    }
+    .login-btn:hover { background: var(--green-dark); }
+    .login-err { color: var(--red); font-size: .82rem; margin-top: 8px; display: none; }
+    .login-err.show { display: block; }
+
+    /* ── Sidebar ──────────────────────────────────────────────────── */
+    aside {
+      width: 240px; flex-shrink: 0;
+      background: var(--sidebar-bg); color: #fff;
+      display: flex; flex-direction: column;
+      height: 100vh; overflow-y: auto;
+    }
+    .sidebar-logo {
+      padding: 24px 20px; font-size: 1.1rem; font-weight: 700;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sidebar-logo img { height: 48px; width: auto; object-fit: contain; }
+    .sidebar-logo .badge {
+      background: var(--green); font-size: .65rem; padding: 2px 8px;
+      border-radius: 99px; letter-spacing: .04em;
+    }
+    nav.sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 13px; border-radius: 10px; cursor: pointer;
+      font-size: .88rem; font-weight: 500; color: rgba(255,255,255,.6);
+      transition: background .2s, color .2s;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .nav-item.active { background: var(--green); color: #fff; }
+    .nav-item .icon { font-size: 1.1rem; width: 20px; text-align: center; }
+    .sidebar-footer {
+      padding: 16px 20px; font-size: .78rem; color: rgba(255,255,255,.3);
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+
+    /* ── Main Content ─────────────────────────────────────────────── */
+    main {
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+    }
+
+    /* ── Top Bar ──────────────────────────────────────────────────── */
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 28px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-title { font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .topbar-actions { display: flex; align-items: center; gap: 12px; }
+    .topbar-btn {
+      padding: 8px 16px; border-radius: 8px; font-size: .82rem;
+      font-weight: 600; font-family: var(--font); cursor: pointer;
+      border: 1.5px solid var(--border); background: var(--surface);
+      color: var(--text); transition: all .2s;
+    }
+    .topbar-btn:hover { border-color: var(--green); color: var(--green); }
+    .topbar-btn.primary { background: var(--green); color: #fff; border-color: var(--green); }
+    .topbar-btn.primary:hover { background: var(--green-dark); border-color: var(--green-dark); color: #fff; }
+    .payment-config-badge {
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-size: .74rem;
+      font-weight: 700;
+      letter-spacing: .01em;
+      background: #fff;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .payment-config-badge.ok {
+      background: var(--green-light);
+      border-color: #b7e5cc;
+      color: var(--green-dark);
+    }
+    .payment-config-badge.missing {
+      background: var(--red-light);
+      border-color: #fecaca;
+      color: #b91c1c;
+    }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      animation: pulse-dot 2s ease infinite;
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.7;transform:scale(1.3)} }
+
+    /* ── Page ─────────────────────────────────────────────────────── */
+    .page { flex: 1; padding: 28px; display: none; }
+    .page.active { display: block; }
+
+    /* ── Stat Cards ───────────────────────────────────────────────── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 22px 24px; box-shadow: var(--shadow);
+      display: flex; align-items: flex-start; gap: 14px;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .stat-icon {
+      width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+    }
+    .stat-icon.green { background: var(--green-light); }
+    .stat-icon.orange { background: var(--orange-light); }
+    .stat-icon.blue { background: var(--blue-light); }
+    .stat-icon.purple { background: var(--purple-light); }
+    .stat-icon.yellow { background: #fefce8; }
+    .stat-value { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+    .stat-label { font-size: .78rem; color: var(--muted); margin-top: 4px; font-weight: 500; }
+    .stat-sub { font-size: .72rem; color: var(--green); margin-top: 3px; font-weight: 600; }
+
+    /* ── Filters ──────────────────────────────────────────────────── */
+    .filters-bar {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 16px 20px; margin-bottom: 18px;
+      display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+      box-shadow: var(--shadow);
+    }
+    .filter-select, .filter-input {
+      padding: 8px 12px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-family: var(--font); font-size: .85rem;
+      color: var(--text); background: var(--bg); outline: none;
+      transition: border-color .2s;
+    }
+    .filter-select:focus, .filter-input:focus { border-color: var(--green); }
+    .filter-btn {
+      padding: 8px 18px; border-radius: 8px; font-family: var(--font);
+      font-size: .85rem; font-weight: 600; cursor: pointer;
+      border: none; transition: all .2s;
+    }
+    .filter-btn.primary { background: var(--green); color: #fff; }
+    .filter-btn.primary:hover { background: var(--green-dark); }
+    .filter-btn.secondary { background: var(--bg); color: var(--muted); border: 1.5px solid var(--border); }
+    .filter-btn.secondary:hover { border-color: var(--green); color: var(--green); }
+
+    /* ── Orders Table ─────────────────────────────────────────────── */
+    .table-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .table-header {
+      padding: 16px 22px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .table-header h3 { font-size: .95rem; font-weight: 700; }
+    .table-count { font-size: .82rem; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left; padding: 11px 18px;
+      font-size: .73rem; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--muted);
+      background: var(--bg); border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg); }
+    td { padding: 12px 18px; font-size: .87rem; vertical-align: middle; }
+    .order-id-cell { font-weight: 700; font-size: .78rem; color: var(--green); letter-spacing: .04em; }
+    .name-cell { font-weight: 600; }
+    .phone-cell { color: var(--muted); font-size: .82rem; }
+    .addr-cell { color: var(--muted); font-size: .8rem; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── Status Badges ────────────────────────────────────────────── */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 11px; border-radius: 99px; font-size: .73rem; font-weight: 700;
+    }
+    .status-badge.pending        { background: #fef3c7; color: #92400e; }
+    .status-badge.confirmed      { background: var(--blue-light); color: #1e3a8a; }
+    .status-badge.preparing      { background: var(--orange-light); color: #9a3412; }
+    .status-badge.out_for_delivery { background: var(--purple-light); color: #4c1d95; }
+    .status-badge.delivered      { background: var(--green-light); color: var(--green-dark); }
+    .status-badge.cancelled      { background: var(--red-light); color: #991b1b; }
+
+    /* ── Status Select ────────────────────────────────────────────── */
+    .status-select {
+      padding: 5px 10px; border-radius: 8px; font-family: var(--font); font-size: .8rem;
+      border: 1px solid var(--border); background: var(--bg); cursor: pointer;
+      outline: none; transition: all .2s;
+    }
+    .status-select:focus { border-color: var(--green); }
+
+    /* ── Pagination ───────────────────────────────────────────────── */
+    .pagination {
+      display: flex; justify-content: center; align-items: center; gap: 8px;
+      padding: 16px;
+    }
+    .page-btn {
+      padding: 7px 14px; border-radius: 8px; font-size: .82rem; font-weight: 600;
+      font-family: var(--font); cursor: pointer; border: 1.5px solid var(--border);
+      background: var(--surface); color: var(--text); transition: all .2s;
+    }
+    .page-btn:hover { border-color: var(--green); color: var(--green); }
+    .page-btn.active { background: var(--green); color: #fff; border-color: var(--green); }
+    .page-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── Charts ───────────────────────────────────────────────────── */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 28px; }
+    .chart-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 22px; box-shadow: var(--shadow);
+    }
+    .chart-card h3 { font-size: .9rem; font-weight: 700; margin-bottom: 18px; color: var(--text); }
+    .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; }
+    .bar-label { font-size: .78rem; color: var(--muted); width: 80px; flex-shrink: 0; font-weight: 500; }
+    .bar-track { flex: 1; background: var(--bg); border-radius: 99px; height: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width .8s ease; }
+    .bar-val { font-size: .78rem; font-weight: 700; width: 36px; text-align: right; }
+
+    /* Donut-style status breakdown */
+    .status-breakdown { display: flex; flex-direction: column; gap: 8px; }
+    .status-row { display: flex; align-items: center; justify-content: space-between; }
+    .status-label { display: flex; align-items: center; gap: 8px; font-size: .82rem; }
+    .status-dot-small { width: 10px; height: 10px; border-radius: 50%; }
+    .status-pct { font-size: .82rem; font-weight: 700; }
+
+    /* ── Empty State ──────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 48px 20px;
+      color: var(--muted); font-size: .9rem;
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+    /* ── Loading spinner ──────────────────────────────────────────── */
+    .spinner {
+      display: inline-block; width: 20px; height: 20px;
+      border: 2px solid var(--border); border-top-color: var(--green);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Toast ────────────────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1a1a1a; color: #fff; padding: 12px 20px;
+      border-radius: 10px; font-size: .88rem; font-weight: 600;
+      z-index: 9000; transform: translateY(80px); opacity: 0;
+      transition: transform .3s, opacity .3s; pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── Responsive ───────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      aside { width: 56px; }
+      .sidebar-logo .brand-text, .nav-item .label, .sidebar-footer { display: none; }
+      .nav-item { justify-content: center; }
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .page { padding: 16px; }
+      .topbar { padding: 0 16px; }
+      table { font-size: .8rem; }
+      td, thead th { padding: 10px 12px; }
+    }
+
+    /* ── Location sharing panel ───────────────────────────────────── */
+    .loc-share-banner {
+      background: linear-gradient(135deg, #1d7a47, #2d9e5f);
+      color: #fff; border-radius: var(--radius);
+      padding: 18px 22px; margin-bottom: 20px;
+      display: none; align-items: center; gap: 14px;
+      box-shadow: 0 4px 16px rgba(45,158,95,.3);
+    }
+    .loc-share-banner.show { display: flex; }
+    .loc-share-info { flex: 1; }
+    .loc-share-info h4 { font-size: .95rem; font-weight: 700; }
+    .loc-share-info p  { font-size: .78rem; opacity: .88; margin-top: 2px; }
+    .loc-share-btn {
+      padding: 9px 18px; border-radius: 99px; font-family: var(--font);
+      font-size: .82rem; font-weight: 700; cursor: pointer; border: none;
+      background: #fff; color: var(--green); transition: all .2s;
+      white-space: nowrap;
+    }
+    .loc-share-btn:hover { background: var(--green-light); }
+    .loc-share-btn.active { background: #ef4444; color: #fff; }
+    .loc-pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: #4ade80; margin-right: 5px; animation: pulse-dot 1s ease infinite; }
+
+    /* ── Customer map link ────────────────────────────────────────── */
+    .map-link {
+      display: inline-flex; align-items: center; gap: 4px;
+      color: var(--green); font-size: .78rem; font-weight: 600;
+      text-decoration: none; padding: 3px 9px; border-radius: 6px;
+      background: var(--green-light); transition: background .2s;
+    }
+    .map-link:hover { background: #c6f0d6; }
+  </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo"><img src="/logo.png" alt="Yummy Salad"></div>
+    <div class="login-title">Yummy Salad Admin</div>
+    <div class="login-sub">Enter your admin token to continue</div>
+    <input type="password" class="login-input" id="token-input" placeholder="Admin Token" />
+    <button class="login-btn" onclick="doLogin()">Login →</button>
+    <p class="login-err" id="login-err">Invalid token. Please try again.</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Sidebar -->
+<aside>
+  <div class="sidebar-logo">
+    <img src="/logo.png" alt="Yummy Salad">
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard', this)">
+      <span class="icon">📊</span><span class="label">Dashboard</span>
+    </div>
+    <div class="nav-item" data-page="orders" onclick="navigate('orders', this)">
+      <span class="icon">📦</span><span class="label">Orders</span>
+    </div>
+    <div class="nav-item" data-page="delivery" onclick="navigate('delivery', this)">
+      <span class="icon">🚚</span><span class="label">Live Delivery</span>
+    </div>
+    <div class="nav-item" onclick="window.open('/', '_blank')">
+      <span class="icon">🌐</span><span class="label">View Site</span>
+    </div>
+  </nav>
+  <div class="sidebar-footer">Yummy Salad © 2025</div>
+</aside>
+
+<!-- Main -->
+<main>
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-title">
+      <div class="live-dot"></div>
+      <span id="page-title">Dashboard</span>
+    </div>
+    <div class="topbar-actions">
+      <span id="payment-config-badge" class="payment-config-badge">Payment Config: Checking...</span>
+      <button class="topbar-btn" onclick="refreshData()">🔄 Refresh</button>
+      <button class="topbar-btn primary" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Dashboard Page -->
+  <div class="page active" id="page-dashboard">
+    <div class="stats-grid" id="dash-stats">
+      <!-- populated by JS -->
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>📍 Orders by Location</h3>
+        <div class="bar-chart" id="chart-location"></div>
+      </div>
+      <div class="chart-card">
+        <h3>📋 Order Status Breakdown</h3>
+        <div class="status-breakdown" id="chart-status"></div>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-bottom:24px">
+      <h3>📈 Last 7 Days Activity</h3>
+      <div class="bar-chart" id="chart-weekly" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- Orders Page -->
+  <div class="page" id="page-orders">
+    <!-- Location sharing banner (shown when sharing is active) -->
+    <div class="loc-share-banner" id="loc-share-banner">
+      <div style="font-size:1.8rem">🚚</div>
+      <div class="loc-share-info">
+        <h4><span class="loc-pulse"></span>Live Location Sharing Active</h4>
+        <p id="loc-share-order-label">Sharing your GPS for order —</p>
+      </div>
+      <button class="loc-share-btn active" onclick="stopSharingLocation()">⏹ Stop Sharing</button>
+    </div>
+    <div class="filters-bar">
+      <select class="filter-select" id="filter-status">
+        <option value="">All Statuses</option>
+        <option value="pending">Pending</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="preparing">Preparing</option>
+        <option value="out_for_delivery">Out for Delivery</option>
+        <option value="delivered">Delivered</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <select class="filter-select" id="filter-location">
+        <option value="">All Locations</option>
+        <option value="Moinabad">Moinabad</option>
+        <option value="Gandipet">Gandipet</option>
+        <option value="Kokapet">Kokapet</option>
+      </select>
+      <input type="date" class="filter-input" id="filter-date" />
+      <button class="filter-btn primary" onclick="loadOrders(1)">Filter</button>
+      <button class="filter-btn secondary" onclick="clearFilters()">Clear</button>
+      <span id="orders-count" style="font-size:.82rem;color:var(--muted);margin-left:auto"></span>
+    </div>
+
+    <div class="table-card" id="orders-table-card">
+      <div class="table-header">
+        <h3>All Orders</h3>
+        <span class="table-count" id="table-count"></span>
+      </div>
+      <div id="orders-table-body">
+        <div class="empty-state"><div class="icon">⏳</div><p>Loading orders...</p></div>
+      </div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+
+  <!-- Delivery Page -->
+  <div class="page" id="page-delivery">
+    <div style="max-width:700px">
+      <div style="background:var(--surface);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);margin-bottom:20px">
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:6px">🚚 Live Delivery GPS Sharing</h3>
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:20px">When you mark an order as <strong>Out for Delivery</strong>, select it below and press <strong>Start Sharing</strong> to broadcast your real-time location to the customer every 10 seconds.</p>
+
+        <label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:8px">Select Active Delivery Order</label>
+        <select id="delivery-order-select" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:.9rem;color:var(--text);background:var(--bg);outline:none;margin-bottom:16px">
+          <option value="">— Loading out-for-delivery orders... —</option>
+        </select>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button id="start-loc-btn" onclick="startSharingLocation()" style="padding:11px 24px;background:var(--green);color:#fff;border:none;border-radius:99px;font-family:var(--font);font-size:.88rem;font-weight:700;cursor:pointer">📡 Start Sharing Location</button>
+          <button id="stop-loc-btn" onclick="stopSharingLocation()" style="padding:11px 24px;background:#ef4444;color:#fff;border:none;border-radius:99px;font-family:var(--font);font-size:.88rem;font-weight:700;cursor:pointer;display:none">⏹ Stop Sharing</button>
+        </div>
+
+        <div id="loc-status-msg" style="margin-top:14px;font-size:.82rem;color:var(--muted)"></div>
+      </div>
+
+      <div style="background:var(--surface);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow)">
+        <h3 style="font-size:.95rem;font-weight:700;margin-bottom:14px">📍 Customer Locations (GPS)</h3>
+        <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Orders where customers shared their GPS location during checkout.</p>
+        <div id="customer-locations-list"><div class="empty-state"><div class="icon">📭</div><p>No GPS data yet.</p></div></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  /* ── State ──────────────────────────────────────────────────────── */
+  let ADMIN_TOKEN = '';
+  let currentPage = 1;
+  const LIMIT = 20;
+
+  /* ── Login ───────────────────────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 Admin dashboard loaded');
+    document.getElementById('token-input').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  });
+
+  async function doLogin() {
+    console.log('🔐 Attempting login...');
+    const token = document.getElementById('token-input').value.trim();
+    if (!token) {
+      showToast('⚠️ Please enter admin token');
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/stats', { headers: { 'x-admin-token': token } });
+      if (res.status === 401) { 
+        document.getElementById('login-err').classList.add('show'); 
+        return; 
+      }
+      const data = await res.json();
+      if (!data.success) {
+        document.getElementById('login-err').textContent = data.error || 'Login failed';
+        document.getElementById('login-err').classList.add('show');
+        return;
+      }
+      ADMIN_TOKEN = token;
+      console.log('✅ Login successful');
+      document.getElementById('login-screen').classList.add('hidden');
+      loadDashboard();
+    } catch (error) {
+      console.error('Login error:', error);
+      document.getElementById('login-err').textContent = 'Network error. Is the server running?';
+      document.getElementById('login-err').classList.add('show');
+    }
+  }
+
+  function logout() { ADMIN_TOKEN = ''; location.reload(); }
+
+  /* ── Navigation ──────────────────────────────────────────────────── */
+  function navigate(page, el) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.getElementById('page-title').textContent = el.querySelector('.label')?.textContent || 'Admin';
+    if (page === 'dashboard') loadDashboard();
+    if (page === 'orders')   loadOrders(1);
+    if (page === 'delivery') loadDeliveryPage();
+  }
+
+  function refreshData() {
+    const activePage = document.querySelector('.page.active');
+    if (activePage?.id === 'page-dashboard') loadDashboard();
+    if (activePage?.id === 'page-orders') loadOrders(currentPage);
+  }
+
+  /* ── Toast ───────────────────────────────────────────────────────── */
+  function showToast(msg, duration = 3000) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  /* ── Dashboard ───────────────────────────────────────────────────── */
+  async function loadDashboard() {
+    console.log('📊 Loading dashboard...');
+    try {
+      const res = await fetch('/api/admin/stats', { headers: { 'x-admin-token': ADMIN_TOKEN } });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load dashboard');
+      const { stats, paymentConfigured } = data;
+      console.log('✅ Dashboard data loaded:', stats);
+      const paymentBadge = document.getElementById('payment-config-badge');
+      if (paymentBadge) {
+        paymentBadge.classList.remove('ok', 'missing');
+        paymentBadge.classList.add(paymentConfigured ? 'ok' : 'missing');
+        paymentBadge.textContent = paymentConfigured
+          ? 'Payment Config: OK'
+          : 'Payment Config: Missing';
+      }
+
+      // Stat cards
+      document.getElementById('dash-stats').innerHTML = `
+        <div class="stat-card"><div class="stat-icon green">📦</div><div><div class="stat-value">${stats.total}</div><div class="stat-label">Total Orders</div></div></div>
+        <div class="stat-card"><div class="stat-icon orange">⏳</div><div><div class="stat-value">${stats.pending}</div><div class="stat-label">Pending</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue">🚚</div><div><div class="stat-value">${stats.outForDelivery}</div><div class="stat-label">Out for Delivery</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${stats.delivered}</div><div class="stat-label">Delivered</div></div></div>
+        <div class="stat-card"><div class="stat-icon purple">💰</div><div><div class="stat-value">₹${stats.revenue.toLocaleString('en-IN')}</div><div class="stat-label">Total Revenue</div></div></div>
+        <div class="stat-card"><div class="stat-icon yellow">📅</div><div><div class="stat-value">₹${stats.todayRevenue.toLocaleString('en-IN')}</div><div class="stat-label">Today's Revenue</div></div></div>
+      `;
+
+      // Location chart
+      const maxLoc = Math.max(...stats.byLocation.map(l => l.count), 1);
+      document.getElementById('chart-location').innerHTML = stats.byLocation.length ? stats.byLocation.map(l => `
+        <div class="bar-row">
+          <div class="bar-label">${l.location}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(l.count/maxLoc)*100}%"></div></div>
+          <div class="bar-val">${l.count}</div>
+        </div>`).join('') : '<div class="empty-state" style="padding:20px"><p>No data yet</p></div>';
+
+      // Status breakdown
+      const statusData = [
+        { key: 'pending',          label: 'Pending',          color: '#f59e0b', val: stats.pending },
+        { key: 'confirmed',        label: 'Confirmed',        color: '#3b82f6', val: stats.confirmed },
+        { key: 'preparing',        label: 'Preparing',        color: '#f97316', val: stats.preparing },
+        { key: 'out_for_delivery', label: 'Out for Delivery', color: '#8b5cf6', val: stats.outForDelivery },
+        { key: 'delivered',        label: 'Delivered',        color: '#2d9e5f', val: stats.delivered },
+        { key: 'cancelled',        label: 'Cancelled',        color: '#ef4444', val: stats.cancelled },
+      ];
+      const totalNonCancelled = stats.total - stats.cancelled || 1;
+      document.getElementById('chart-status').innerHTML = statusData.map(s => `
+        <div class="status-row">
+          <div class="status-label">
+            <div class="status-dot-small" style="background:${s.color}"></div>
+            <span style="font-size:.82rem;color:var(--muted)">${s.label}</span>
+          </div>
+          <span class="status-pct">${s.val}</span>
+        </div>`).join('');
+
+      // Weekly chart
+      if (stats.weeklyData?.length) {
+        const maxOrders = Math.max(...stats.weeklyData.map(d => d.orders), 1);
+        document.getElementById('chart-weekly').innerHTML = stats.weeklyData.map(d => `
+          <div class="bar-row">
+            <div class="bar-label">${d.day}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(d.orders/maxOrders)*100}%"></div></div>
+            <div class="bar-val">${d.orders}</div>
+          </div>`).join('');
+      } else {
+        document.getElementById('chart-weekly').innerHTML = '<p style="font-size:.82rem;color:var(--muted)">No orders in the last 7 days yet.</p>';
+      }
+    } catch (err) {
+      console.error('Dashboard load error:', err);
+      const paymentBadge = document.getElementById('payment-config-badge');
+      if (paymentBadge) {
+        paymentBadge.classList.remove('ok');
+        paymentBadge.classList.add('missing');
+        paymentBadge.textContent = 'Payment Config: Unknown';
+      }
+      showToast('❌ Failed to load dashboard: ' + (err.message || 'Unknown error'));
+    }
+  }
+
+  /* ── Orders ──────────────────────────────────────────────────────── */
+  async function loadOrders(page = 1) {
+    console.log(`📦 Loading orders page ${page}...`);
+    currentPage = page;
+    const status   = document.getElementById('filter-status').value;
+    const location = document.getElementById('filter-location').value;
+    const date     = document.getElementById('filter-date').value;
+
+    const params = new URLSearchParams({ page, limit: LIMIT });
+    if (status)   params.set('status', status);
+    if (location) params.set('location', location);
+    if (date)     params.set('date', date);
+
+    document.getElementById('orders-table-body').innerHTML = '<div class="empty-state"><div class="spinner"></div><p style="margin-top:10px">Loading...</p></div>';
+
+    try {
+      const res = await fetch(`/api/admin/orders?${params}`, { headers: { 'x-admin-token': ADMIN_TOKEN } });
+      const data = await res.json();
+      console.log('✅ Orders loaded:', data.orders?.length || 0);
+
+      if (!data.orders?.length) {
+        document.getElementById('orders-table-body').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>';
+        document.getElementById('pagination').innerHTML = '';
+        document.getElementById('table-count').textContent = '0 orders';
+        return;
+      }
+
+      document.getElementById('table-count').textContent = `${data.total} orders`;
+
+      const rows = data.orders.map(o => `
+        <tr>
+          <td><div class="order-id-cell">${o.order_id}</div></td>
+          <td><div class="name-cell">${esc(o.name)}</div><div class="phone-cell">${o.phone}</div></td>
+          <td>${esc(o.location)}</td>
+          <td class="addr-cell" title="${esc(o.address)}">${esc(o.address)}</td>
+          <td style="text-align:center">
+            ${ o.customer_lat && o.customer_lng
+                ? `<a class="map-link" href="https://www.google.com/maps?q=${o.customer_lat},${o.customer_lng}" target="_blank">📍 Map</a>`
+                : '<span style="color:var(--muted);font-size:.75rem">No GPS</span>'
+            }
+          </td>
+          <td style="text-align:center;font-weight:700">${o.quantity}</td>
+          <td style="text-align:center">
+            <div style="font-size:.8rem;color:var(--muted)">${o.bowlSize || 'regular'}</div>
+            <div style="font-weight:700;color:var(--green)">₹${o.bowlPrice || 29}</div>
+          </td>
+          <td style="font-weight:700;color:var(--green)">₹${o.total}</td>
+          <td><span class="status-badge ${o.status}">${formatStatus(o.status)}</span></td>
+          <td>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <select class="status-select" onchange="updateStatus(${o.id}, this.value, this, '${o.order_id}')">
+                ${['pending','confirmed','preparing','out_for_delivery','delivered','cancelled'].map(s => `<option value="${s}"${s===o.status?' selected':''}>${formatStatus(s)}</option>`).join('')}
+              </select>
+              ${ o.status === 'out_for_delivery'
+                  ? `<button onclick="startSharingLocationFor('${o.order_id}')" style="padding:4px 10px;font-size:.72rem;font-weight:700;background:var(--green);color:#fff;border:none;border-radius:6px;cursor:pointer">📡 Share GPS</button>`
+                  : ''
+              }
+            </div>
+          </td>
+          <td style="font-size:.78rem;color:var(--muted)">${formatDate(o.created_at)}</td>
+        </tr>`).join('');
+
+      document.getElementById('orders-table-body').innerHTML = `
+        <table>
+          <thead><tr>
+            <th>Order ID</th><th>Customer</th><th>Location</th><th>Address</th>
+            <th>📍 GPS</th><th style="text-align:center">Qty</th><th style="text-align:center">Bowl</th><th>Amount</th><th>Status</th><th>Update</th><th>Date</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+
+      // Pagination
+      const totalPages = Math.ceil(data.total / LIMIT);
+      let pages = '';
+      for (let i = 1; i <= totalPages; i++) {
+        pages += `<button class="page-btn${i === page ? ' active' : ''}" onclick="loadOrders(${i})">${i}</button>`;
+      }
+      document.getElementById('pagination').innerHTML = `
+        <button class="page-btn" onclick="loadOrders(${page-1})" ${page===1?'disabled':''}>← Prev</button>
+        ${pages}
+        <button class="page-btn" onclick="loadOrders(${page+1})" ${page===totalPages?'disabled':''}>Next →</button>`;
+    } catch (err) {
+      console.error('Orders load error:', err);
+      document.getElementById('orders-table-body').innerHTML = '<div class="empty-state"><div class="icon">❌</div><p>Failed to load orders: ' + (err.message || 'Unknown error') + '</p></div>';
+    }
+  }
+
+  async function updateStatus(orderId, status, selectEl, orderStringId) {
+    console.log(`🔄 Updating order ${orderId} to status: ${status}`);
+    selectEl.disabled = true;
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_TOKEN },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        console.log('✅ Status updated successfully');
+        showToast('✅ Status updated to: ' + formatStatus(status));
+        const row = selectEl.closest('tr');
+        if (row) {
+          const badge = row.querySelector('.status-badge');
+          if (badge) { badge.className = 'status-badge ' + status; badge.textContent = formatStatus(status); }
+        }
+        // Auto-navigate to delivery page + pre-select if out for delivery
+        if (status === 'out_for_delivery' && orderStringId) {
+          showToast('📡 Go to Live Delivery tab to share your GPS!');
+        }
+      } else { 
+        console.error('❌ Status update failed:', data.error);
+        showToast('❌ ' + data.error); 
+      }
+    } catch (error) { 
+      console.error('Status update error:', error);
+      showToast('❌ Network error: ' + (error.message || 'Unknown error')); 
+    }
+    selectEl.disabled = false;
+  }
+
+  /* ── Location Sharing (admin → delivery person GPS) ───────────────── */
+  let locationShareInterval = null;
+  let sharingOrderId = null;
+
+  function startSharingLocationFor(orderId) {
+    // Jump to delivery page and pre-select
+    const deliveryNav = document.querySelector('[data-page="delivery"]');
+    navigate('delivery', deliveryNav);
+    setTimeout(() => {
+      const sel = document.getElementById('delivery-order-select');
+      if (sel) sel.value = orderId;
+    }, 300);
+  }
+
+  async function loadDeliveryPage() {
+    // Load out-for-delivery orders into select
+    try {
+      const res = await fetch('/api/admin/orders?status=out_for_delivery&limit=50', { headers: { 'x-admin-token': ADMIN_TOKEN } });
+      const data = await res.json();
+      const select = document.getElementById('delivery-order-select');
+      if (!data.orders?.length) {
+        select.innerHTML = '<option value="">— No orders out for delivery —</option>';
+      } else {
+        select.innerHTML = '<option value="">— Select order —</option>' +
+          data.orders.map(o => `<option value="${o.order_id}">${o.order_id} | ${esc(o.name)} | ${o.location}</option>`).join('');
+      }
+
+      // Load customer GPS list
+      const allRes = await fetch('/api/admin/orders?limit=100', { headers: { 'x-admin-token': ADMIN_TOKEN } });
+      const allData = await allRes.json();
+      const withGPS = (allData.orders || []).filter(o => o.customer_lat && o.customer_lng);
+      const listEl = document.getElementById('customer-locations-list');
+      if (!withGPS.length) {
+        listEl.innerHTML = '<div class="empty-state" style="padding:20px"><div class="icon">📭</div><p>No GPS data yet.</p></div>';
+      } else {
+        listEl.innerHTML = withGPS.map(o => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:.88rem;font-weight:700">${esc(o.name)} <span style="color:var(--muted);font-weight:400;font-size:.8rem">${o.order_id}</span></div>
+              <div style="font-size:.78rem;color:var(--muted)">${o.location} · ${o.phone}</div>
+              <div style="font-size:.72rem;color:var(--muted);margin-top:2px">GPS: ${parseFloat(o.customer_lat).toFixed(5)}, ${parseFloat(o.customer_lng).toFixed(5)}</div>
+            </div>
+            <a class="map-link" href="https://www.google.com/maps?q=${o.customer_lat},${o.customer_lng}" target="_blank">📍 Open Map</a>
+          </div>`).join('');
+      }
+    } catch (error) { 
+      console.error('Delivery page load error:', error);
+      showToast('❌ Failed to load delivery data: ' + (error.message || 'Unknown error')); 
+    }
+  }
+
+  async function startSharingLocation() {
+    console.log('📍 Starting location sharing...');
+    const orderId = document.getElementById('delivery-order-select').value;
+    if (!orderId) { showToast('⚠️ Please select an order first'); return; }
+    if (!navigator.geolocation) { showToast('❌ Geolocation not supported'); return; }
+
+    sharingOrderId = orderId;
+    document.getElementById('start-loc-btn').style.display = 'none';
+    document.getElementById('stop-loc-btn').style.display = 'inline-block';
+    document.getElementById('loc-status-msg').innerHTML = '<span style="color:var(--green);font-weight:600">📡 Sharing live location for ' + orderId + '...</span>';
+
+    // Also show banner in orders page
+    const banner = document.getElementById('loc-share-banner');
+    if (banner) { banner.classList.add('show'); document.getElementById('loc-share-order-label').textContent = 'Sharing GPS for order ' + orderId; }
+
+    async function pushLocation() {
+      console.log('📡 Pushing location...');
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        try {
+          await fetch(`/api/admin/orders/${encodeURIComponent(orderId)}/delivery-location`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_TOKEN },
+            body: JSON.stringify({ lat, lng })
+          });
+          const ts = new Date().toLocaleTimeString('en-IN');
+          document.getElementById('loc-status-msg').innerHTML =
+            `<span style="color:var(--green);font-weight:600">📡 Sharing for ${orderId}</span> &nbsp;<span style="color:var(--muted);font-size:.78rem">Last push: ${ts} · ${lat.toFixed(5)}, ${lng.toFixed(5)}</span>`;
+          console.log('✅ Location pushed successfully');
+        } catch (error) { 
+          console.error('Location push error:', error);
+          /* skip errors silently to avoid spamming user */ 
+        }
+      }, (error) => { 
+        console.error('Geolocation error:', error);
+        showToast('❌ Cannot get your location: ' + (error.message || 'Permission denied')); 
+      });
+    }
+
+    pushLocation();
+    locationShareInterval = setInterval(pushLocation, 10000);
+  }
+
+  function stopSharingLocation() {
+    if (locationShareInterval) { clearInterval(locationShareInterval); locationShareInterval = null; }
+    sharingOrderId = null;
+    document.getElementById('start-loc-btn').style.display = 'inline-block';
+    document.getElementById('stop-loc-btn').style.display = 'none';
+    document.getElementById('loc-status-msg').innerHTML = '<span style="color:var(--muted)">Location sharing stopped.</span>';
+    const banner = document.getElementById('loc-share-banner');
+    if (banner) banner.classList.remove('show');
+    showToast('⏹ Location sharing stopped');
+  }
+
+  function clearFilters() {
+    document.getElementById('filter-status').value = '';
+    document.getElementById('filter-location').value = '';
+    document.getElementById('filter-date').value = '';
+    loadOrders(1);
+  }
+
+  /* ── Helpers ─────────────────────────────────────────────────────── */
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function formatStatus(s) {
+    return { pending:'Pending', confirmed:'Confirmed', preparing:'Preparing', out_for_delivery:'Out for Delivery', delivered:'Delivered', cancelled:'Cancelled' }[s] || s;
+  }
+
+  function formatDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d);
+    return dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) + ' ' +
+           dt.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+  }
+</script>
+</body>
+</html>

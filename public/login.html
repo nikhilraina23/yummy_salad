@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Yummy Salad</title>
+  <meta name="description" content="Login to track your Yummy Salad order or access the admin dashboard." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green:       #2d9e5f;
+      --green-dark:  #1d7a47;
+      --green-light: #e6f7ee;
+      --green-glow:  rgba(45,158,95,.28);
+      --orange:      #f97316;
+      --orange-light:#fff4ed;
+      --red:         #ef4444;
+      --bg:          #fdfaf5;
+      --surface:     #ffffff;
+      --text:        #1a1a1a;
+      --muted:       #6b7280;
+      --border:      #e5e7eb;
+      --radius:      16px;
+      --radius-sm:   10px;
+      --radius-lg:   24px;
+      --shadow:      0 4px 24px rgba(0,0,0,.07);
+      --shadow-lg:   0 16px 56px rgba(0,0,0,.13);
+      --font-display:"Playfair Display", Georgia, serif;
+      --font-body:   "DM Sans", system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Background blobs */
+    .bg-blob {
+      position: fixed; border-radius: 50%;
+      filter: blur(90px); opacity: .3; pointer-events: none; z-index: 0;
+    }
+    .bg-blob-1 { width: 600px; height: 600px; background: #bbf7d0; top: -200px; left: -200px; }
+    .bg-blob-2 { width: 500px; height: 500px; background: #fde68a; bottom: -150px; right: -150px; }
+    .bg-blob-3 { width: 350px; height: 350px; background: #fed7aa; top: 40%; left: 55%; }
+
+    /* Header */
+    header {
+      position: relative; z-index: 10;
+      text-align: center; padding: 32px 20px 0;
+    }
+    .brand {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-display); font-size: 1.8rem; color: var(--green);
+      text-decoration: none;
+    }
+    .brand-sub {
+      font-size: .8rem; color: var(--muted); font-family: var(--font-body);
+      font-weight: 500; margin-top: 4px;
+    }
+
+    /* Main container */
+    main {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 40px 20px 60px; position: relative; z-index: 10;
+    }
+
+    .login-wrapper {
+      width: 100%; max-width: 880px;
+    }
+
+    .login-heading {
+      text-align: center; margin-bottom: 36px;
+    }
+    .login-heading h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      color: var(--text); line-height: 1.2;
+    }
+    .login-heading p {
+      color: var(--muted); margin-top: 8px; font-size: .97rem;
+    }
+
+    /* Cards grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 680px) {
+      .cards-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Login card */
+    .login-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      border: 1.5px solid var(--border);
+      transition: transform .25s, box-shadow .25s;
+    }
+    .login-card:hover { transform: translateY(-4px); box-shadow: 0 24px 72px rgba(0,0,0,.16); }
+
+    .card-header {
+      padding: 32px 36px 24px;
+      text-align: center;
+    }
+    .card-header.user-header {
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+    }
+    .card-header.admin-header {
+      background: linear-gradient(135deg, #1e3a5f, #2d5282);
+    }
+    .card-icon {
+      font-size: 3rem; margin-bottom: 10px;
+      animation: float 3s ease-in-out infinite;
+    }
+    .card-header h2 {
+      font-family: var(--font-display); font-size: 1.5rem; color: #fff;
+    }
+    .card-header p {
+      font-size: .82rem; color: rgba(255,255,255,.78); margin-top: 6px;
+    }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+    .card-body { padding: 32px 36px; }
+    @media (max-width: 480px) {
+      .card-body { padding: 24px 22px; }
+      .card-header { padding: 28px 22px 20px; }
+    }
+
+    /* Form elements */
+    .form-group { margin-bottom: 18px; }
+    .form-group label {
+      display: block; font-size: .83rem; font-weight: 700;
+      margin-bottom: 7px; color: var(--text);
+    }
+    .form-group input {
+      width: 100%; padding: 13px 16px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-family: var(--font-body); font-size: .95rem;
+      background: var(--bg); color: var(--text);
+      transition: border-color .2s, box-shadow .2s; outline: none;
+    }
+    .form-group input:focus {
+      border-color: var(--green); box-shadow: 0 0 0 3px rgba(45,158,95,.12);
+    }
+    .form-group input.admin-focus:focus {
+      border-color: #2d5282; box-shadow: 0 0 0 3px rgba(45,82,130,.12);
+    }
+    .form-group input.error { border-color: var(--red); }
+    .error-msg {
+      font-size: .76rem; color: var(--red); margin-top: 5px; display: none;
+    }
+    .error-msg.show { display: block; }
+
+    /* Password wrapper */
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 44px; }
+    .pw-toggle {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      font-size: 1.1rem; color: var(--muted); padding: 4px;
+      transition: color .2s;
+    }
+    .pw-toggle:hover { color: var(--text); }
+
+    /* Buttons */
+    .btn-user {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      color: #fff; border: none; border-radius: var(--radius-sm);
+      font-family: var(--font-body); font-size: 1rem; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 6px 20px var(--green-glow);
+      transition: opacity .2s, transform .15s, box-shadow .2s;
+      margin-top: 6px;
+    }
+    .btn-user:hover { opacity: .92; transform: translateY(-2px); box-shadow: 0 10px 28px var(--green-glow); }
+    .btn-user:active { transform: translateY(0); }
+    .btn-user:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    .btn-admin {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #1e3a5f, #2d5282);
+      color: #fff; border: none; border-radius: var(--radius-sm);
+      font-family: var(--font-body); font-size: 1rem; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 6px 20px rgba(30,58,95,.3);
+      transition: opacity .2s, transform .15s, box-shadow .2s;
+      margin-top: 6px;
+    }
+    .btn-admin:hover { opacity: .92; transform: translateY(-2px); box-shadow: 0 10px 28px rgba(30,58,95,.35); }
+    .btn-admin:active { transform: translateY(0); }
+    .btn-admin:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    /* Divider */
+    .divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 18px 0; color: var(--muted); font-size: .8rem;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      height: 1px; background: var(--border);
+    }
+
+    /* Info note */
+    .info-note {
+      background: var(--green-light); border-radius: var(--radius-sm);
+      padding: 12px 14px; font-size: .82rem; color: #1d7a47;
+      display: flex; align-items: flex-start; gap: 8px; margin-bottom: 18px;
+    }
+    .admin-note {
+      background: #eff6ff; color: #1e3a5f;
+    }
+
+    /* Back link */
+    .back-link {
+      text-align: center; margin-top: 8px;
+      font-size: .83rem; color: var(--muted);
+    }
+    .back-link a { color: var(--green); font-weight: 600; }
+    .back-link a:hover { text-decoration: underline; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1a1a1a; color: #fff; padding: 12px 28px;
+      border-radius: 99px; font-size: .9rem; font-weight: 600;
+      z-index: 9999; transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+      pointer-events: none; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Track result (user) */
+    .track-result {
+      margin-top: 20px; background: var(--green-light);
+      border-radius: var(--radius-sm); padding: 20px;
+      display: none; animation: fadeUp .4s ease both;
+    }
+    .track-result.show { display: block; }
+    .track-result .order-id-label { font-size: .78rem; color: var(--muted); margin-bottom: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+    .status-timeline { display: flex; flex-direction: column; }
+    .status-step {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding-bottom: 16px; position: relative;
+    }
+    .status-step:not(:last-child)::before {
+      content: ''; position: absolute; left: 15px; top: 32px;
+      width: 2px; height: calc(100% - 16px); background: var(--border);
+    }
+    .status-step.active::before { background: var(--green); }
+    .status-dot {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; z-index: 1;
+    }
+    .status-step.done .status-dot { background: var(--green); color: #fff; }
+    .status-step.active .status-dot { background: var(--green); animation: pulse 1.5s ease infinite; }
+    .status-info h5 { font-size: .85rem; font-weight: 700; }
+    .status-info p { font-size: .75rem; color: var(--muted); margin-top: 1px; }
+    @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 var(--green-glow)} 50%{opacity:.9;box-shadow:0 0 0 6px transparent} }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+
+    /* Footer */
+    footer {
+      position: relative; z-index: 10;
+      text-align: center; padding: 20px;
+      font-size: .78rem; color: var(--muted);
+    }
+    footer a { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<div class="bg-blob bg-blob-1"></div>
+<div class="bg-blob bg-blob-2"></div>
+<div class="bg-blob bg-blob-3"></div>
+
+<div class="toast" id="toast"></div>
+
+<header>
+  <a href="/" class="brand">&#x1F957; Yummy Salad</a>
+  <div class="brand-sub">Fresh Fruit Salad &middot; Moinabad &middot; Gandipet &middot; Kokapet</div>
+</header>
+
+<main>
+  <div class="login-wrapper">
+    <div class="login-heading">
+      <h1>Welcome Back &#x1F44B;</h1>
+      <p>Track your order as a customer, or manage everything as an admin.</p>
+    </div>
+
+    <div class="cards-grid">
+
+      <!-- User / Customer Card -->
+      <div class="login-card" id="user-card">
+        <div class="card-header user-header">
+          <div class="card-icon">&#x1F6D2;</div>
+          <h2>Track My Order</h2>
+          <p>Enter your Order ID or phone number to see delivery status</p>
+        </div>
+        <div class="card-body">
+          <div class="info-note">
+            &#x2139;&#xFE0F; You received your Order ID (YS-XXXXXX) on the order confirmation screen.
+          </div>
+
+          <!-- Tab switcher -->
+          <div style="display:flex;gap:8px;margin-bottom:18px">
+            <button class="tab-btn active" id="tab-orderid" onclick="switchTab('orderid')">By Order ID</button>
+            <button class="tab-btn" id="tab-phone" onclick="switchTab('phone')">By Phone</button>
+          </div>
+
+          <div id="panel-orderid">
+            <div class="form-group">
+              <label for="u-orderid">Order ID</label>
+              <input type="text" id="u-orderid" placeholder="e.g. YS-ABC123" style="text-transform:uppercase" />
+              <p class="error-msg" id="u-orderid-err">Please enter a valid Order ID.</p>
+            </div>
+          </div>
+
+          <div id="panel-phone" style="display:none">
+            <div class="form-group">
+              <label for="u-phone">WhatsApp Number</label>
+              <input type="tel" id="u-phone" placeholder="10-digit number" maxlength="10" />
+              <p class="error-msg" id="u-phone-err">Please enter a valid 10-digit number.</p>
+            </div>
+          </div>
+
+          <button class="btn-user" id="track-btn" onclick="trackOrder()">
+            &#x1F50D; Track My Order
+          </button>
+
+          <div class="track-result" id="track-result"></div>
+
+          <div class="back-link" style="margin-top:16px">
+            <a href="/">&#x2190; Back to place an order</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Card -->
+      <div class="login-card" id="admin-card">
+        <div class="card-header admin-header">
+          <div class="card-icon">&#x1F9D1;&#x200D;&#x1F4BB;</div>
+          <h2>Admin Login</h2>
+          <p>Manage orders, update statuses and view analytics</p>
+        </div>
+        <div class="card-body">
+          <div class="info-note admin-note">
+            &#x1F512; Admin access is restricted. Contact the owner for credentials.
+          </div>
+
+          <div class="form-group">
+            <label for="a-username">Username</label>
+            <input type="text" id="a-username" class="admin-focus" placeholder="admin" autocomplete="username" />
+            <p class="error-msg" id="a-username-err">Please enter your username.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="a-password">Password</label>
+            <div class="pw-wrap">
+              <input type="password" id="a-password" class="admin-focus" placeholder="Enter password" autocomplete="current-password" />
+              <button class="pw-toggle" id="pw-eye" onclick="togglePw()" title="Show/Hide password">&#x1F441;&#xFE0F;</button>
+            </div>
+            <p class="error-msg" id="a-password-err">Please enter your password.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="a-token">Admin Token</label>
+            <div class="pw-wrap">
+              <input type="password" id="a-token" class="admin-focus" placeholder="Secret token" />
+              <button class="pw-toggle" id="token-eye" onclick="toggleToken()" title="Show/Hide token">&#x1F441;&#xFE0F;</button>
+            </div>
+            <p class="error-msg" id="a-token-err">Please enter the admin token.</p>
+          </div>
+
+          <button class="btn-admin" id="admin-btn" onclick="adminLogin()">
+            &#x1F510; Login to Dashboard
+          </button>
+
+          <div class="back-link" style="margin-top:16px">
+            <a href="/">&#x2190; Back to homepage</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer>
+  &copy; 2025 Yummy Salad &middot; <a href="/">Home</a> &middot; Online payment only &middot; No COD
+</footer>
+
+<style>
+  /* Tab buttons */
+  .tab-btn {
+    flex: 1; padding: 9px 12px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--muted);
+    font-family: var(--font-body); font-size: .83rem; font-weight: 600;
+    cursor: pointer; transition: all .2s;
+  }
+  .tab-btn.active {
+    background: var(--green); color: #fff; border-color: var(--green);
+  }
+  .tab-btn:hover:not(.active) { border-color: var(--green); color: var(--green); }
+</style>
+
+<script>
+  /* ── Toast ──────────────────────────────────────── */
+  function showToast(msg, duration = 3200) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  /* ── Tab switcher ───────────────────────────────── */
+  function switchTab(tab) {
+    document.getElementById('panel-orderid').style.display = tab === 'orderid' ? '' : 'none';
+    document.getElementById('panel-phone').style.display   = tab === 'phone'   ? '' : 'none';
+    document.getElementById('tab-orderid').classList.toggle('active', tab === 'orderid');
+    document.getElementById('tab-phone').classList.toggle('active', tab === 'phone');
+    document.getElementById('track-result').classList.remove('show');
+    document.getElementById('track-result').innerHTML = '';
+  }
+
+  /* ── Toggle passwords ───────────────────────────── */
+  function togglePw() {
+    const inp = document.getElementById('a-password');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+  function toggleToken() {
+    const inp = document.getElementById('a-token');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  /* ── Phone digits only ──────────────────────────── */
+  document.getElementById('u-phone').addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g, '');
+  });
+  document.getElementById('u-orderid').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+  });
+  document.getElementById('u-orderid').addEventListener('keydown', e => {
+    if (e.key === 'Enter') trackOrder();
+  });
+  document.getElementById('u-phone').addEventListener('keydown', e => {
+    if (e.key === 'Enter') trackOrder();
+  });
+  document.getElementById('a-token').addEventListener('keydown', e => {
+    if (e.key === 'Enter') adminLogin();
+  });
+
+  /* ── Track Order ────────────────────────────────── */
+  const STATUS_STEPS = [
+    { key: 'pending',          icon: '&#x1F4CB;', label: 'Order Received',   desc: 'Your order is in our system' },
+    { key: 'confirmed',        icon: '&#x2705;',  label: 'Confirmed',        desc: 'Payment received, order confirmed' },
+    { key: 'preparing',        icon: '&#x1F52A;', label: 'Being Prepared',   desc: 'Fruits are being freshly cut &amp; packed' },
+    { key: 'out_for_delivery', icon: '&#x1F69A;', label: 'Out for Delivery', desc: 'On the way to your address!' },
+    { key: 'delivered',        icon: '&#x1F389;', label: 'Delivered',        desc: 'Enjoy your fresh salad! &#x1F957;' }
+  ];
+
+  async function trackOrder() {
+    const isOrderId = document.getElementById('tab-orderid').classList.contains('active');
+    const resultEl  = document.getElementById('track-result');
+    const btn       = document.getElementById('track-btn');
+
+    let orderId = '';
+
+    if (isOrderId) {
+      orderId = document.getElementById('u-orderid').value.trim().toUpperCase();
+      const errEl = document.getElementById('u-orderid-err');
+      const inp   = document.getElementById('u-orderid');
+      if (!orderId || !orderId.startsWith('YS-')) {
+        inp.classList.add('error'); errEl.classList.add('show'); return;
+      }
+      inp.classList.remove('error'); errEl.classList.remove('show');
+    } else {
+      const phone = document.getElementById('u-phone').value.trim();
+      const errEl = document.getElementById('u-phone-err');
+      const inp   = document.getElementById('u-phone');
+      if (!/^[6-9]\d{9}$/.test(phone)) {
+        inp.classList.add('error'); errEl.classList.add('show'); return;
+      }
+      inp.classList.remove('error'); errEl.classList.remove('show');
+      // Phone-based lookup — try to find latest order by phone
+      orderId = 'PHONE:' + phone;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '&#x23F3; Looking up...';
+    resultEl.classList.remove('show');
+    resultEl.innerHTML = '';
+
+    try {
+      let res, data;
+      if (orderId.startsWith('PHONE:')) {
+        const phone = orderId.replace('PHONE:', '');
+        res  = await fetch(`/api/orders/phone/${phone}`);
+        data = await res.json();
+      } else {
+        res  = await fetch(`/api/orders/${orderId}`);
+        data = await res.json();
+      }
+
+      if (!data.success) {
+        resultEl.innerHTML = `<p style="color:var(--red);font-weight:600;font-size:.9rem">&#x274C; ${data.error || 'Order not found. Check your Order ID.'}</p>`;
+        resultEl.classList.add('show');
+        btn.disabled = false;
+        btn.innerHTML = '&#x1F50D; Track My Order';
+        return;
+      }
+
+      const o = data.order || data.orders?.[0];
+      if (!o) {
+        resultEl.innerHTML = `<p style="color:var(--red);font-weight:600;font-size:.9rem">&#x274C; No orders found for this number.</p>`;
+        resultEl.classList.add('show');
+        btn.disabled = false;
+        btn.innerHTML = '&#x1F50D; Track My Order';
+        return;
+      }
+
+      const currentIdx = STATUS_STEPS.findIndex(s => s.key === o.status);
+      const isCancelled = o.status === 'cancelled';
+
+      if (isCancelled) {
+        resultEl.innerHTML = `
+          <div class="order-id-label">Order #${o.orderId}</div>
+          <p style="color:var(--red);font-weight:600">&#x274C; This order has been cancelled.</p>
+          <p style="font-size:.8rem;color:var(--muted);margin-top:4px">Contact us on WhatsApp for help.</p>`;
+      } else {
+        const stepsHTML = STATUS_STEPS.map((s, i) => {
+          const isDone   = i < currentIdx;
+          const isActive = i === currentIdx;
+          const cls = isDone ? 'done' : isActive ? 'active' : '';
+          return `
+            <div class="status-step ${cls}">
+              <div class="status-dot">${isDone ? '&#x2713;' : s.icon}</div>
+              <div class="status-info">
+                <h5>${s.label}</h5>
+                <p>${isActive ? '<strong style="color:var(--green)">' + s.desc + '</strong>' : s.desc}</p>
+              </div>
+            </div>`;
+        }).join('');
+
+        resultEl.innerHTML = `
+          <div class="order-id-label">Order #${o.orderId} &middot; ${o.quantity} bowl(s) &middot; &#8377;${o.total}</div>
+          <div class="status-timeline">${stepsHTML}</div>
+          <p style="margin-top:12px;font-size:.78rem;color:var(--muted)">
+            &#x1F4E6; Est. delivery: ${o.estimatedDelivery}
+          </p>`;
+      }
+
+      resultEl.classList.add('show');
+    } catch (err) {
+      resultEl.innerHTML = `<p style="color:var(--red);font-size:.88rem">&#x274C; Network error. Please try again.</p>`;
+      resultEl.classList.add('show');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '&#x1F50D; Track My Order';
+  }
+
+  /* ── Admin Login ────────────────────────────────── */
+  async function adminLogin() {
+    const username = document.getElementById('a-username').value.trim();
+    const password = document.getElementById('a-password').value.trim();
+    const token    = document.getElementById('a-token').value.trim();
+
+    let valid = true;
+    const check = (id, errId, cond) => {
+      const el  = document.getElementById(id);
+      const err = document.getElementById(errId);
+      if (!cond) { el.classList.add('error'); err.classList.add('show'); valid = false; }
+      else        { el.classList.remove('error'); err.classList.remove('show'); }
+    };
+
+    check('a-username', 'a-username-err', username.length >= 2);
+    check('a-password', 'a-password-err', password.length >= 4);
+    check('a-token',    'a-token-err',    token.length >= 4);
+    if (!valid) return;
+
+    const btn = document.getElementById('admin-btn');
+    btn.disabled = true;
+    btn.innerHTML = '&#x23F3; Verifying...';
+
+    try {
+      const res  = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, token })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        // Store token in sessionStorage for admin.html to use
+        sessionStorage.setItem('adminToken', token);
+        sessionStorage.setItem('adminUser',  username);
+        showToast('&#x2705; Login successful! Redirecting...');
+        setTimeout(() => { window.location.href = '/admin.html'; }, 1000);
+      } else {
+        showToast('&#x274C; ' + (data.error || 'Invalid credentials. Please try again.'));
+        btn.disabled = false;
+        btn.innerHTML = '&#x1F510; Login to Dashboard';
+      }
+    } catch (err) {
+      showToast('&#x274C; Network error. Please try again.');
+      btn.disabled = false;
+      btn.innerHTML = '&#x1F510; Login to Dashboard';
+    }
+  }
+</script>
+</body>
+</html>
