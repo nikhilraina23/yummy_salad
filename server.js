@@ -304,6 +304,12 @@ app.get('/api/stats', async (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || 'YOUR_ADMIN_TOKEN_HERE').trim();
 
+// ── Production Check ────────────────────────────────────────────────────────
+if (process.env.NETLIFY && ADMIN_TOKEN === 'YOUR_ADMIN_TOKEN_HERE') {
+  console.warn('\n⚠️ WARNING: ADMIN_TOKEN is set to default placeholder in production!');
+  console.warn('⚠️ Please set the ADMIN_TOKEN environment variable in the Netlify dashboard.\n');
+}
+
 // POST /api/admin/login
 app.post('/api/admin/login', adminLimiter, (req, res) => {
   try {
