@@ -478,12 +478,14 @@ app.get('/admin.html', (req, res) => res.sendFile(join(__dirname, 'public', 'adm
 
 // ── Start Server ─────────────────────────────────────────────────────────────
 if (!process.env.NETLIFY) {
-  app.listen(PORT, () => {
-    console.log(`\n🥗 Yummy Salad server running on http://localhost:${PORT}`);
-    console.log(`📊 Admin dashboard: http://localhost:${PORT}/admin.html`);
-    console.log(`🔑 Admin token: ${ADMIN_TOKEN}`);
-    console.log(`💳 Razorpay: ${razorpay ? 'configured' : 'missing keys (RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET)'}`);
-    console.log(`📁 Data stored in: orders.json\n`);
+  db.connectDb().then(() => {
+    app.listen(PORT, () => {
+      console.log(`\n🥗 Yummy Salad server running on http://localhost:${PORT}`);
+      console.log(`📊 Admin dashboard: http://localhost:${PORT}/admin.html`);
+      console.log(`🔑 Admin token: ${ADMIN_TOKEN}`);
+      console.log(`💳 Razorpay: ${razorpay ? 'configured' : 'missing keys (RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET)'}`);
+      console.log(`📁 Database: MongoDB Atlas\n`);
+    });
   });
 }
 

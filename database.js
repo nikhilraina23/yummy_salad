@@ -1,32 +1,69 @@
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { Low } from 'lowdb';
-import { JSONFile } from 'lowdb/node';
-import fs from 'fs';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config();
 
-// Modify path for Netlify's ephemeral /tmp storage if running on Netlify
-let file = join(__dirname, 'orders.json');
-if (process.env.NETLIFY) {
-  file = '/tmp/orders.json';
-  if (!fs.existsSync(file) && fs.existsSync(join(__dirname, 'orders.json'))) {
-    fs.copyFileSync(join(__dirname, 'orders.json'), file);
+const MONGODB_URI = process.env.MONGODB_URI;
+
+// ── Models ───────────────────────────────────────────────────────────────────
+
+const counterSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  seq: { type: Number, default: 0 }
+});
+const Counter = mongoose.models.Counter || mongoose.model('Counter', counterSchema);
+
+const orderSchema = new mongoose.Schema({
+  id: { type: Number, unique: true },
+  order_id: { type: String, unique: true },
+  name: String,
+  phone: String,
+  location: String,
+  address: String,
+  quantity: Number,
+  bowlSize: { type: String, default: 'regular' },
+  bowlPrice: { type: Number, default: 29 },
+  total: Number,
+  payment_method: { type: String, default: 'online' },
+  payment_provider: String,
+  payment_status: { type: String, default: 'pending' },
+  razorpay_order_id: String,
+  razorpay_payment_id: String,
+  payment_paid_at: String,
+  notes: String,
+  status: { type: String, default: 'pending' },
+  customer_lat: Number,
+  customer_lng: Number,
+  created_at: String,
+  updated_at: String
+});
+const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);
+
+const deliveryLocationSchema = new mongoose.Schema({
+  orderId: { type: String, required: true, unique: true },
+  lat: Number,
+  lng: Number,
+  updated_at: String
+});
+const DeliveryLocation = mongoose.models.DeliveryLocation || mongoose.model('DeliveryLocation', deliveryLocationSchema);
+
+// ── Connection ───────────────────────────────────────────────────────────────
+
+let isConnected = false;
+
+export async function connectDb() {
+  if (isConnected) return;
+  if (!MONGODB_URI) {
+    console.warn('⚠️ MONGODB_URI is not defined. Database operations will fail.');
+    return;
   }
-}
-
-const adapter = new JSONFile(file);
-
-// ── In-house singleton ───────────────────────────────────────────────────────
-let _db = null;
-
-async function getDb() {
-  if (_db) return _db;
-  _db = new Low(adapter, { orders: [], counter: 0, deliveryLocations: {} });
-  await _db.read();
-  // Migrate: ensure deliveryLocations key exists
-  if (!_db.data.deliveryLocations) _db.data.deliveryLocations = {};
-  return _db;
+  try {
+    await mongoose.connect(MONGODB_URI);
+    isConnected = true;
+    console.log('✅ MongoDB connected');
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error);
+  }
 }
 
 // ── Helper: generate friendly order ID ──────────────────────────────────────
@@ -46,11 +83,18 @@ function now() {
 // ── CRUD ─────────────────────────────────────────────────────────────────────
 
 export async function createOrder({ name, phone, location, address, quantity, notes, total, customerLat, customerLng, bowlSize, bowlPrice }) {
-  const db = await getDb();
-  db.data.counter = (db.data.counter || 0) + 1;
-  const id = db.data.counter;
+  await connectDb();
+  
+  const counter = await Counter.findOneAndUpdate(
+    { id: 'order_id' },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+  
+  const id = counter.seq;
   const orderId = generateOrderId(id);
-  const order = {
+  
+  const order = new Order({
     id, order_id: orderId, name, phone, location, address, quantity: parseInt(quantity),
     bowlSize: bowlSize || 'regular',
     bowlPrice: parseInt(bowlPrice) || 29,
@@ -65,193 +109,172 @@ export async function createOrder({ name, phone, location, address, quantity, no
     customer_lat: customerLat || null,
     customer_lng: customerLng || null,
     created_at: now(), updated_at: now()
-  };
-    db.data.orders.push(order);
-    await db.write();
-    return order;
+  });
+  
+  await order.save();
+  return order.toObject();
 }
 
 export async function getOrderById(id) {
-  const db = await getDb();
-  return db.data.orders.find(o => o.id === id) || null;
+  await connectDb();
+  const order = await Order.findOne({ id: parseInt(id) });
+  return order ? order.toObject() : null;
 }
 
 export async function getOrderByOrderId(orderId) {
-  const db = await getDb();
-  return db.data.orders.find(o => o.order_id === orderId) || null;
+  await connectDb();
+  const order = await Order.findOne({ order_id: orderId });
+  return order ? order.toObject() : null;
 }
 
 export async function getAllOrders({ status, location, date, page = 1, limit = 50 } = {}) {
-  const db = await getDb();
-  let orders = [...db.data.orders];
-  if (status)   orders = orders.filter(o => o.status === status);
-  if (location) orders = orders.filter(o => o.location === location);
-  if (date)     orders = orders.filter(o => o.created_at.startsWith(date));
-  orders.sort((a, b) => b.created_at.localeCompare(a.created_at));
-  return orders.slice((page - 1) * limit, page * limit);
+  await connectDb();
+  const query = {};
+  if (status) query.status = status;
+  if (location) query.location = location;
+  if (date) query.created_at = { $regex: `^${date}` };
+  
+  const orders = await Order.find(query)
+    .sort({ created_at: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit);
+    
+  return orders.map(o => o.toObject());
 }
 
 export async function countOrders({ status, location, date } = {}) {
-  const db = await getDb();
-  let orders = db.data.orders;
-  if (status)   orders = orders.filter(o => o.status === status);
-  if (location) orders = orders.filter(o => o.location === location);
-  if (date)     orders = orders.filter(o => o.created_at.startsWith(date));
-  return orders.length;
+  await connectDb();
+  const query = {};
+  if (status) query.status = status;
+  if (location) query.location = location;
+  if (date) query.created_at = { $regex: `^${date}` };
+  
+  return await Order.countDocuments(query);
 }
 
 export async function updateOrderStatus(id, status) {
-  const db = await getDb();
-  
-  // Validate ID and status
+  await connectDb();
   if (!id || isNaN(id)) return false;
-  if (!status || typeof status !== 'string') return false;
   
-  const order = db.data.orders.find(o => o.id === parseInt(id));
-  if (!order) return false;
-  
-  order.status = status;
-  order.updated_at = now();
-  try {
-    await db.write();
-    return true;
-  } catch (error) {
-    console.error('Failed to update order status:', error);
-    return false;
-  }
+  const result = await Order.updateOne(
+    { id: parseInt(id) },
+    { status, updated_at: now() }
+  );
+  return result.modifiedCount > 0;
 }
 
 export async function attachPaymentOrder(orderId, { paymentProvider, razorpayOrderId }) {
-  const db = await getDb();
-  const order = db.data.orders.find(o => o.order_id === orderId);
-  if (!order) return false;
+  await connectDb();
   const provider = paymentProvider || '';
-  order.payment_method = provider === 'cod' ? 'cod' : 'online';
-  order.payment_provider = provider;
-  order.razorpay_order_id = razorpayOrderId || null;
-  order.updated_at = now();
-  await db.write();
-  return true;
+  const result = await Order.updateOne(
+    { order_id: orderId },
+    { 
+      payment_method: provider === 'cod' ? 'cod' : 'online',
+      payment_provider: provider,
+      razorpay_order_id: razorpayOrderId || null,
+      updated_at: now()
+    }
+  );
+  return result.modifiedCount > 0;
 }
 
 export async function markOrderPaid(orderId, { razorpayPaymentId }) {
-  const db = await getDb();
-  const order = db.data.orders.find(o => o.order_id === orderId);
-  if (!order) return false;
-  order.payment_status = 'paid';
-  order.razorpay_payment_id = razorpayPaymentId || null;
-  order.payment_paid_at = now();
-  order.status = 'confirmed';
-  order.updated_at = now();
-  await db.write();
-  return true;
+  await connectDb();
+  const result = await Order.updateOne(
+    { order_id: orderId },
+    { 
+      payment_status: 'paid',
+      razorpay_payment_id: razorpayPaymentId || null,
+      payment_paid_at: now(),
+      status: 'confirmed',
+      updated_at: now()
+    }
+  );
+  return result.modifiedCount > 0;
 }
 
-// ── Delivery Person Location (admin pushes, customer polls) ─────────────────
-
 export async function setDeliveryLocation(orderId, lat, lng) {
-  const db = await getDb();
-  
-  // Validate inputs
+  await connectDb();
   if (!orderId || typeof orderId !== 'string') return false;
   if (isNaN(lat) || isNaN(lng)) return false;
   
-  if (!db.data.deliveryLocations) db.data.deliveryLocations = {};
-  
-  db.data.deliveryLocations[orderId] = {
-    lat: parseFloat(lat),
-    lng: parseFloat(lng),
-    updated_at: now()
-  };
-  
-  try {
-    await db.write();
-    return true;
-  } catch (error) {
-    console.error('Failed to set delivery location:', error);
-    return false;
-  }
-}
-
-export async function getDeliveryLocation(orderId) {
-  const db = await getDb();
-  const loc = (db.data.deliveryLocations || {})[orderId];
-  if (!loc) return null;
-  // Expire after 10 minutes of no update
-  if (Date.now() - loc.updatedAt > 10 * 60 * 1000) return null;
-  return loc;
-}
-
-export async function clearDeliveryLocation(orderId) {
-  const db = await getDb();
-  if (db.data.deliveryLocations) {
-    delete db.data.deliveryLocations[orderId];
-    await db.write();
-  }
+  await DeliveryLocation.findOneAndUpdate(
+    { orderId },
+    { lat: parseFloat(lat), lng: parseFloat(lng), updated_at: now() },
+    { upsert: true }
+  );
   return true;
 }
 
-// ── Stats ────────────────────────────────────────────────────────────────────
+export async function getDeliveryLocation(orderId) {
+  await connectDb();
+  const loc = await DeliveryLocation.findOne({ orderId });
+  if (!loc) return null;
+  
+  const updatedAtDate = new Date(loc.updated_at.replace(' ', 'T') + '+05:30');
+  if (Date.now() - updatedAtDate.getTime() > 10 * 60 * 1000) return null;
+  return loc.toObject();
+}
+
+export async function clearDeliveryLocation(orderId) {
+  await connectDb();
+  await DeliveryLocation.deleteOne({ orderId });
+  return true;
+}
 
 export async function getStats() {
-  const db = await getDb();
+  await connectDb();
   const todayStr = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  return {
-    totalOrders:  db.data.orders.filter(o => o.status !== 'cancelled').length,
-    deliveredOrders: db.data.orders.filter(o => o.status === 'delivered').length,
-    todayOrders:  db.data.orders.filter(o => o.status !== 'cancelled' && o.created_at.startsWith(todayStr)).length
-  };
+  
+  const totalOrders = await Order.countDocuments({ status: { $ne: 'cancelled' } });
+  const deliveredOrders = await Order.countDocuments({ status: 'delivered' });
+  const todayOrders = await Order.countDocuments({ 
+    status: { $ne: 'cancelled' },
+    created_at: { $regex: `^${todayStr}` }
+  });
+  
+  return { totalOrders, deliveredOrders, todayOrders };
 }
 
 export async function getAdminStats() {
-  try {
-    const db = await getDb();
-    if (!db || !db.data || !Array.isArray(db.data.orders)) {
-      throw new Error('Invalid database structure');
+  await connectDb();
+  const todayStr = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const sevenDaysAgo = new Date(Date.now() + 5.5*60*60*1000 - 7*24*60*60*1000).toISOString().slice(0,10);
+
+  const orders = await Order.find({});
+  
+  const count = s => orders.filter(o => o.status === s).length;
+  const revenue = orders.filter(o => !['cancelled','pending'].includes(o.status)).reduce((s,o) => s + (o.total || 0), 0);
+  const todayRevenue = orders.filter(o => o.status !== 'cancelled' && o.created_at && o.created_at.startsWith(todayStr)).reduce((s,o) => s + (o.total || 0), 0);
+
+  const locMap = {};
+  orders.filter(o => o.status !== 'cancelled').forEach(o => { 
+    if (o.location) {
+      locMap[o.location] = (locMap[o.location] || 0) + 1; 
     }
-    
-    const orders = db.data.orders;
-    const todayStr = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  });
+  const byLocation = Object.entries(locMap).map(([location, count]) => ({ location, count }));
 
-    const count = s => orders.filter(o => o.status === s).length;
-    const revenue = orders.filter(o => !['cancelled','pending'].includes(o.status)).reduce((s,o) => s + (o.total || 0), 0);
-    const todayRevenue = orders.filter(o => o.status !== 'cancelled' && o.created_at && o.created_at.startsWith(todayStr)).reduce((s,o) => s + (o.total || 0), 0);
+  const weeklyMap = {};
+  orders.filter(o => o.status !== 'cancelled' && o.created_at && o.created_at >= sevenDaysAgo).forEach(o => {
+    const day = o.created_at.slice(0, 10);
+    if (!weeklyMap[day]) weeklyMap[day] = { day, orders: 0, revenue: 0 };
+    weeklyMap[day].orders++;
+    weeklyMap[day].revenue += (o.total || 0);
+  });
+  const weeklyData = Object.values(weeklyMap).sort((a, b) => a.day.localeCompare(b.day));
 
-    // By location
-    const locMap = {};
-    orders.filter(o => o.status !== 'cancelled').forEach(o => { 
-      if (o.location) {
-        locMap[o.location] = (locMap[o.location] || 0) + 1; 
-      }
-    });
-    const byLocation = Object.entries(locMap).map(([location, count]) => ({ location, count }));
-
-    // Last 7 days
-    const weeklyMap = {};
-    const sevenDaysAgo = new Date(Date.now() + 5.5*60*60*1000 - 7*24*60*60*1000).toISOString().slice(0,10);
-    orders.filter(o => o.status !== 'cancelled' && o.created_at && o.created_at >= sevenDaysAgo).forEach(o => {
-      const day = o.created_at.slice(0, 10);
-      if (!weeklyMap[day]) weeklyMap[day] = { day, orders: 0, revenue: 0 };
-      weeklyMap[day].orders++;
-      weeklyMap[day].revenue += (o.total || 0);
-    });
-    const weeklyData = Object.values(weeklyMap).sort((a, b) => a.day.localeCompare(b.day));
-
-    return {
-      total: orders.length,
-      pending: count('pending'),
-      confirmed: count('confirmed'),
-      preparing: count('preparing'),
-      outForDelivery: count('out_for_delivery'),
-      delivered: count('delivered'),
-      cancelled: count('cancelled'),
-      revenue, 
-      todayRevenue, 
-      byLocation, 
-      weeklyData
-    };
-  } catch (error) {
-    console.error('Error generating admin stats:', error);
-    throw error;
-  }
+  return {
+    total: orders.length,
+    pending: count('pending'),
+    confirmed: count('confirmed'),
+    preparing: count('preparing'),
+    outForDelivery: count('out_for_delivery'),
+    delivered: count('delivered'),
+    cancelled: count('cancelled'),
+    revenue, 
+    todayRevenue, 
+    byLocation, 
+    weeklyData
+  };
 }
